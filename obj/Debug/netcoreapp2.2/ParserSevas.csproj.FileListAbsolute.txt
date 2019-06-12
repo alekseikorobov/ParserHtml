@@ -1,0 +1,11 @@
+/home/alekisei/Project/ParserSevas/bin/Debug/netcoreapp2.2/ParserSevas.deps.json
+/home/alekisei/Project/ParserSevas/bin/Debug/netcoreapp2.2/ParserSevas.runtimeconfig.json
+/home/alekisei/Project/ParserSevas/bin/Debug/netcoreapp2.2/ParserSevas.runtimeconfig.dev.json
+/home/alekisei/Project/ParserSevas/bin/Debug/netcoreapp2.2/ParserSevas.dll
+/home/alekisei/Project/ParserSevas/bin/Debug/netcoreapp2.2/ParserSevas.pdb
+/home/alekisei/Project/ParserSevas/obj/Debug/netcoreapp2.2/ParserSevas.csprojAssemblyReference.cache
+/home/alekisei/Project/ParserSevas/obj/Debug/netcoreapp2.2/ParserSevas.csproj.CoreCompileInputs.cache
+/home/alekisei/Project/ParserSevas/obj/Debug/netcoreapp2.2/ParserSevas.AssemblyInfoInputs.cache
+/home/alekisei/Project/ParserSevas/obj/Debug/netcoreapp2.2/ParserSevas.AssemblyInfo.cs
+/home/alekisei/Project/ParserSevas/obj/Debug/netcoreapp2.2/ParserSevas.dll
+/home/alekisei/Project/ParserSevas/obj/Debug/netcoreapp2.2/ParserSevas.pdb
