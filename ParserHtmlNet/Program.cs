@@ -20,11 +20,19 @@ namespace ParserHtmlNet
             get => _link; set
             {
                 _link = value;
-
-                Paths = WebUtility.UrlDecode(_link).Replace("http://xn--80adi1cd.xn--p1ai/", "").Split(new string[] { "/" }, StringSplitOptions.RemoveEmptyEntries).ToList();
             }
         }
-        public List<string> Paths { get; set; }
+        public List<string> Paths
+        {
+            get
+            {
+                if (_link != null)
+                {
+                    return WebUtility.UrlDecode(_link).Replace("http://xn--80adi1cd.xn--p1ai/", "").Split(new string[] { "/" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                }
+                return new List<string>();
+            }
+        }
         public string Name { get; set; }
     }
     public class Product : LinkClass
@@ -37,17 +45,29 @@ namespace ParserHtmlNet
         public List<Category> SubCategories { get; set; }
     }
 
+    public class ProductDetails : LinkClass
+    {
+        public List<Image> Images { get; set; }
+        public string Title { get; internal set; }
+        public string Price { get; internal set; }
+        public string Description { get; internal set; }
+        public string OtherDescription { get; internal set; }
+    }
+
     class Program
     {
         static System.Net.WebClient wc = new WebClient();
         static string html = "";
         static string CacheFolder = "CacheHtml";
+        static string ImageProductFolder = "ImageProducts";
+
 
         private static void init()
         {
             (wc.Proxy = WebRequest.DefaultWebProxy).Credentials = CredentialCache.DefaultCredentials;
 
             Directory.CreateDirectory(CacheFolder);
+            Directory.CreateDirectory(ImageProductFolder);
         }
 
         static void Main(string[] args)
@@ -59,8 +79,105 @@ namespace ParserHtmlNet
 
             var products = cats.SelectMany(c => c.SubCategories).SelectMany(c => c.Products);
 
-            Console.WriteLine($"Всего продуктов - {products.Count()}");
 
+            List<ProductDetails> ProductDetails = GetProductsDetails(products);
+
+            Console.WriteLine("Готово");
+            Console.ReadLine();
+
+        }
+
+        private static List<ProductDetails> GetProductsDetails(IEnumerable<Product> products)
+        {
+            double count = products.Count();
+            Console.WriteLine($"Всего продуктов - {count}");
+            Console.WriteLine();
+
+            List<ProductDetails> ProductDetails = new List<ProductDetails>();
+
+            string pathProductDetails = "ProductDetail.json";
+
+            if (!File.Exists(pathProductDetails))
+            {
+                Console.WriteLine("Забираем детали");
+
+                int i = 0;
+                foreach (Product product in products)
+                {
+                    Console.WriteLine($"{i++},\t {i * 100.0 / count:0.00} %");
+                    ProductDetails productDetail = GetDetailsProduct(product);
+                    ProductDetails.Add(productDetail);
+                }
+
+                var jsonCat = Newtonsoft.Json.JsonConvert.SerializeObject(ProductDetails,Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(pathProductDetails, jsonCat);
+            }
+            else
+            {
+                ProductDetails = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ProductDetails>>(File.ReadAllText(pathProductDetails));
+            }
+
+            return ProductDetails;
+        }
+
+        private static void test()
+        {
+            GetDetailsProduct(new Product
+            {
+                Link = "http://xn--80adi1cd.xn--p1ai/%D0%BA%D0%B0%D0%BB%D1%8C%D1%8F%D0%BD%D1%8B/soft-smoke/softsmoke-lite.html",
+                Name = "Шахта Soft Smoke Lite",
+            });
+        }
+
+        private static ProductDetails GetDetailsProduct(Product product)
+        {
+            ProductDetails productDetails = new ProductDetails
+            {
+                Images = new List<Image>()
+            };
+            string fileName = string.Join("_", product.Paths);
+            var doc = LoadOrReadGetDocument(fileName, product.Link);
+
+            var block = doc.QuerySelector(".row-product");
+            var title = block.QuerySelector("span[itemprop=\"name\"]");
+            productDetails.Title = title.InnerText;
+
+            var thumbnail = block.QuerySelector("a.thumbnail");
+            var image = new Image()
+            {
+                ServerPath = thumbnail.Attributes["href"].Value,
+                LocalPath = DownloadImage(thumbnail.Attributes["href"].Value, product.Paths)
+            };
+            productDetails.Images.Add(image);
+
+            var priceBlock = block.QuerySelector("span#formated_price");
+
+            productDetails.Price = priceBlock.InnerText;
+
+            var tabs = doc.QuerySelector(".row.tabs.pos-11");
+            var disBlock = tabs.QuerySelector("div[itemprop='description']");
+            var dis = disBlock.QuerySelectorAll("p").ToList();
+            productDetails.Description = dis[0].InnerText;
+
+            productDetails.OtherDescription = string.Join(";", dis.Skip(1));
+
+            return productDetails;
+        }
+
+        private static string DownloadImage(string link, List<string> paths)
+        {
+            var pathsIm = link.Split(new string[] { "/" }, StringSplitOptions.RemoveEmptyEntries);
+            string dir = Path.Combine(ImageProductFolder, string.Join(@"\", paths).Replace(".html", ""));
+
+            Directory.CreateDirectory(dir);
+            string localFilename = dir + @"\" + pathsIm[pathsIm.Length - 1];
+
+            if (!File.Exists(localFilename))
+            {
+                Console.WriteLine($"DownloadFile - {link}");
+                wc.DownloadFile(link, localFilename);
+            }
+            return localFilename;
         }
 
         private static List<Category> GetProductListAll()
@@ -79,7 +196,7 @@ namespace ParserHtmlNet
                     GetProductList(catSub);
                 }
 
-                var jsonCat = Newtonsoft.Json.JsonConvert.SerializeObject(cats);
+                var jsonCat = Newtonsoft.Json.JsonConvert.SerializeObject(cats, Newtonsoft.Json.Formatting.Indented);
                 File.WriteAllText(CategoryProductJson, jsonCat);
             }
             else
@@ -165,7 +282,7 @@ namespace ParserHtmlNet
                     GetLineSubCategory(c);
                 }
 
-                var jsonCat = Newtonsoft.Json.JsonConvert.SerializeObject(cats);
+                var jsonCat = Newtonsoft.Json.JsonConvert.SerializeObject(cats, Newtonsoft.Json.Formatting.Indented);
                 File.WriteAllText(Categoryjson, jsonCat);
             }
             else
