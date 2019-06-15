@@ -11,48 +11,6 @@ using System.Threading.Tasks;
 
 namespace ParserHtmlNet
 {
-    public abstract class LinkClass
-    {
-        private string _link;
-
-        public string Link
-        {
-            get => _link; set
-            {
-                _link = value;
-            }
-        }
-        public List<string> Paths
-        {
-            get
-            {
-                if (_link != null)
-                {
-                    return WebUtility.UrlDecode(_link).Replace("http://xn--80adi1cd.xn--p1ai/", "").Split(new string[] { "/" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                }
-                return new List<string>();
-            }
-        }
-        public string Name { get; set; }
-    }
-    public class Product : LinkClass
-    {
-        public string ImageLink { get; internal set; }
-    }
-    public class Category : LinkClass
-    {
-        public List<Product> Products { get; set; }
-        public List<Category> SubCategories { get; set; }
-    }
-
-    public class ProductDetails : LinkClass
-    {
-        public List<Image> Images { get; set; }
-        public string Title { get; internal set; }
-        public string Price { get; internal set; }
-        public string Description { get; internal set; }
-        public string OtherDescription { get; internal set; }
-    }
 
     class Program
     {
@@ -157,23 +115,36 @@ namespace ParserHtmlNet
             var tabs = doc.QuerySelector(".row.tabs.pos-11");
             var disBlock = tabs.QuerySelector("div[itemprop='description']");
             var dis = disBlock.QuerySelectorAll("p").ToList();
-            productDetails.Description = dis[0].InnerText;
-
-            productDetails.OtherDescription = string.Join(";", dis.Skip(1));
-
+            if (dis.Count != 0)
+            {
+                productDetails.Description = dis[0].InnerText;
+                productDetails.OtherDescription = string.Join(";", dis.Skip(1));
+            }
+            else
+            {
+                var dis1 = disBlock.QuerySelectorAll("div").ToList();
+                if (dis1.Count > 0)
+                {
+                    productDetails.Description = dis1[0].InnerText;
+                    productDetails.OtherDescription = string.Join(";", dis1.Skip(1));
+                }
+            }
             return productDetails;
         }
 
         private static string DownloadImage(string link, List<string> paths)
         {
             var pathsIm = link.Split(new string[] { "/" }, StringSplitOptions.RemoveEmptyEntries);
-            string dir = Path.Combine(ImageProductFolder, string.Join(@"\", paths).Replace(".html", ""));
+            string dir = Path.Combine(ImageProductFolder, 
+                string.Join(@"\", paths).Replace(".html", ""));
 
+            dir = ReplaceSpecCharsDir(dir);
             Directory.CreateDirectory(dir);
             string localFilename = dir + @"\" + pathsIm[pathsIm.Length - 1];
 
             if (!File.Exists(localFilename))
             {
+                link = link.Replace("&amp;", "&");
                 Console.WriteLine($"DownloadFile - {link}");
                 wc.DownloadFile(link, localFilename);
             }
@@ -359,11 +330,14 @@ namespace ParserHtmlNet
 
         private static string LoadOrRead(string fileName, string url)
         {
+            fileName = ReplaceSpecChars(fileName);
             var fullName = Path.Combine(CacheFolder, fileName);
             var html = "";
             if (!File.Exists(fullName))
             {
+                url = url.Replace("&amp;", "&");
                 html = wc.DownloadString(url);
+
                 Console.WriteLine($"{WebUtility.UrlDecode(url)}");
                 File.WriteAllText(fullName, html);
             }
@@ -372,6 +346,25 @@ namespace ParserHtmlNet
                 html = File.ReadAllText(fullName);
             }
             return html;
+        }
+
+        private static string ReplaceSpecChars(string fileName)
+        {
+            foreach (var ch in Path.GetInvalidFileNameChars())
+            {
+                fileName = fileName.Replace(ch, '_');
+            }
+            fileName = fileName.Replace("&amp;", "_");
+            return fileName;
+        }
+        private static string ReplaceSpecCharsDir(string dirName)
+        {
+            foreach (var ch in Path.GetInvalidPathChars().Union(Path.GetInvalidFileNameChars()))
+            {
+                dirName = dirName.Replace(ch, '_');
+            }
+            dirName = dirName.Replace("&amp;", "_");
+            return dirName;
         }
     }
 }

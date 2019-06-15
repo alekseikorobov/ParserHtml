@@ -123,7 +123,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Category.cs" />
     <Compile Include="Image.cs" />
+    <Compile Include="LinkClass.cs" />
+    <Compile Include="Product.cs" />
+    <Compile Include="ProductDetails.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
