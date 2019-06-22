@@ -127,6 +127,7 @@
     <Compile Include="Image.cs" />
     <Compile Include="LinkClass.cs" />
     <Compile Include="Product.cs" />
+    <Compile Include="ProductCategory.cs" />
     <Compile Include="ProductDetails.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
